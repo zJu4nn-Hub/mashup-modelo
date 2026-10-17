@@ -1,0 +1,27 @@
+{
+  "formato": 2,
+  "nome": "Meu Mashup",
+  "versao": "0.1.0",
+  "pacote": "meu-mashup-*.zip",
+  "jogos": ["peak", "minecraft"],
+  "principal": "peak",
+  "minecraft": { "versao": "26.3", "fabric": "0.19.5", "memoriaMB": 4096 },
+  "bases": ["bepinex"],
+  "mapear": [
+    { "de": "BepInEx/", "para": "{jogo:peak}/BepInEx" },
+    { "de": "mods/", "para": "{mods}" }
+  ],
+  "textos": {
+    "pt": {
+      "descricao": "Troque este texto: 1 ou 2 frases contando o que o jogador ganha com o seu mashup.",
+      "comoFunciona": ["O Hub abre o Minecraft e depois o PEAK.", "Troque estas linhas pelo que a pessoa faz no jogo."],
+      "avisos": ["Precisa do Minecraft: Java Edition original."]
+    },
+    "en": {
+      "descricao": "Replace this text: 1 or 2 sentences about what players get from your mashup.",
+      "comoFunciona": ["The Hub starts Minecraft and then PEAK.", "Replace these lines with what players do in the game."],
+      "avisos": ["Needs the original Minecraft: Java Edition."]
+    }
+  },
+  "creditos": []
+}

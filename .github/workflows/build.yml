@@ -1,0 +1,76 @@
+# Compila o mashup do zero e publica a release que o zJu4nn Hub instala.
+# Roda pelo botão "Run workflow" (aba Actions) ou ao criar uma tag v*. O zJu4nn roda este mesmo arquivo na cópia
+# dele antes de publicar, então ele precisa funcionar sozinho, sem nada do seu PC.
+#
+# Builds the mashup from scratch and publishes the release zJu4nn Hub installs. Runs from the "Run workflow"
+# button (Actions tab) or on a v* tag. zJu4nn runs this same file in its copy before publishing.
+name: build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # nome do .zip e versão saem do hub.json ("pacote" com o * trocado pela "versao")
+      - name: Ler o hub.json
+        id: hub
+        shell: pwsh
+        run: |
+          $h = Get-Content hub.json -Raw | ConvertFrom-Json
+          if ($h.formato -ne 2) { throw 'hub.json precisa de "formato": 2' }
+          if ($h.versao -notmatch '^[\w.+-]{1,24}$' -or $h.pacote -notmatch '^[\w.+*-]{3,100}$') { throw 'versao/pacote do hub.json com caracteres não permitidos' }
+          $zip = $h.pacote.Replace('*', $h.versao)
+          "versao=$($h.versao)" >> $env:GITHUB_OUTPUT
+          "zip=$zip" >> $env:GITHUB_OUTPUT
+
+      # Precisa de Java (mod do Minecraft) ou .NET (plugin BepInEx)? Descomente:
+      # - uses: actions/setup-java@v4
+      #   with: { distribution: temurin, java-version: '21' }
+      # - uses: actions/setup-dotnet@v4
+      #   with: { dotnet-version: '8.0.x' }
+
+      - name: Compilar (build.ps1)
+        shell: pwsh
+        run: ./build.ps1
+
+      # valores do hub.json entram por variável (env), nunca colados no comando
+      - name: Empacotar
+        shell: pwsh
+        env:
+          ZIP: ${{ steps.hub.outputs.zip }}
+        run: |
+          $zip = $env:ZIP
+          if (-not (Get-ChildItem dist -Recurse -File -ErrorAction SilentlyContinue)) { throw 'o build.ps1 não colocou nada em dist/' }
+          New-Item -ItemType Directory -Force out | Out-Null
+          # 7-Zip (já vem no GitHub): grava os caminhos com "/", como o Hub espera
+          Push-Location dist
+          7z a -tzip "../out/$zip" * -r | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw '7z falhou' }
+          Pop-Location
+          $sha = (Get-FileHash "out/$zip" -Algorithm SHA256).Hash.ToLower()
+          "$sha  $zip" | Out-File -Encoding ascii out/SHA256SUMS.txt
+          Get-Content out/SHA256SUMS.txt
+
+      - name: Publicar a release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSAO: ${{ steps.hub.outputs.versao }}
+          ZIP: ${{ steps.hub.outputs.zip }}
+        run: |
+          $tag = 'v' + $env:VERSAO
+          $zip = $env:ZIP
+          # mesma versão de novo = troca a release (o Hub sempre pega a mais nova)
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) { gh release delete $tag --yes --cleanup-tag }
+          gh release create $tag "out/$zip" out/SHA256SUMS.txt --title $tag --notes "Build automático para o zJu4nn Hub" --target $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'não consegui publicar a release' }

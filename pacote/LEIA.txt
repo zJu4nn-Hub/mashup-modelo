@@ -1,0 +1,5 @@
+Tudo que estiver nesta pasta vai no .zip do mashup do jeito que está (o build.ps1 copia pra dist/).
+Use pra arquivos prontos: configurações, o perfil mashup.me3 do Elden Ring, textos. Pode apagar este arquivo.
+
+Everything in this folder goes into the mashup .zip as is (build.ps1 copies it to dist/).
+Use it for ready-made files: configs, the Elden Ring mashup.me3 profile, texts. You can delete this file.
